@@ -1,0 +1,20 @@
+import { chromium, devices } from 'playwright';
+const url = process.argv[2], out = process.argv[3] || 'assets/m_home';
+const b = await chromium.launch();
+const ctx = await b.newContext({ ...devices['Pixel 7'], viewport: { width: 393, height: 852 }, deviceScaleFactor: 3 });
+const p = await ctx.newPage();
+const r = await p.goto(url, { waitUntil: 'networkidle', timeout: 60000 }).catch(e => (console.log('ERR', e.message), null));
+if (!r) process.exit(1);
+await p.waitForTimeout(1500);
+console.log('status', r.status(), '|', await p.title(), '|', p.url());
+await p.screenshot({ path: out + '.png' });
+await p.screenshot({ path: out + '_full.png', fullPage: true });
+const info = await p.evaluate(() => {
+  const vis = (e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+  const links = [...document.querySelectorAll('a[href]')].filter(vis).map(a => [a.innerText.trim().replace(/\s+/g, ' ').slice(0, 40), a.getAttribute('href')]).filter(x => x[1] && !x[1].startsWith('javascript'));
+  const inputs = [...document.querySelectorAll('input,button')].filter(vis).slice(0, 25).map(e => [e.tagName, e.type || '', (e.placeholder || e.innerText || e.getAttribute('aria-label') || '').trim().slice(0, 40)]);
+  const prices = [...document.querySelectorAll('body *')].filter(e => e.children.length === 0 && /(₹|\$|€|£|¥|Rs\.?)\s?\d/.test(e.textContent)).slice(0, 20).map(e => e.textContent.trim().slice(0, 50));
+  return { h: document.documentElement.scrollHeight, links: links.slice(0, 80), inputs, prices };
+});
+console.log(JSON.stringify(info, null, 0));
+await b.close();

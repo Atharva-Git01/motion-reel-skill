@@ -1,0 +1,8 @@
+{
+  "name": "motion-studio",
+  "private": true,
+  "description": "Code-rendered motion video studio. The motion-reel skill copies this folder into each film project.",
+  "devDependencies": {
+    "playwright": "^1.64.0"
+  }
+}
